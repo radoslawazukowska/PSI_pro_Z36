@@ -6,8 +6,10 @@ HOST = "127.0.0.1"  # The server's hostname or IP addres
 PORT = 1234  # Port na ktorym nasłuchuje server
 
 if __name__ == "__main__":
-    sleep(5)
-    print("Client wakes up")
+    # sleep(5)
+    # print("Client wakes up")
+    inp = input("Write here: ")
+    print("Input: ", inp)
 
     host = HOST
     port = PORT

@@ -8,11 +8,25 @@ Git repository for project from PSI (Network programming) course in Warsaw Unive
 - Aleksandra Szczypawka
 - Radosława Żukowska
 
-## Uruchomienie
+## Uruchomienie z interaktywnym terminalem
+
+Program pobiera input użytkownika z terminala. Parametry konfiuracyjne pochodzą z `docker-compose.yaml`.
 
 ```
-cd PSI_pro_Z36
-docker build -t tcp_client:1.0 -f ./Client/dockerfile .
-docker build -t tcp_server:1.0 -f ./Server/dockerfile .
+docker-compose run server
+docker-compose run client
+```
 
+## Uruchomienie
+
+### Oba równocześnie
+
+```
+docker-compose -f docker-compose.yaml up --build
+```
+
+## Usunięcie
+
+```
+docker-compose -f docker-compose.yaml down
 ```
