@@ -1,0 +1,21 @@
+version: "3"
+services:
+  server:
+    container_name: server
+    build : ./Server
+    image: tcp_server:1.0
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+
+  client:
+    container_name: client
+    build: ./Client
+    image: tcp_client:1.0
+    stdin_open: true
+    tty: true
+    command: ["server", "1234"]
+
+
+networks:
+  default:
+    name: tcp_network
