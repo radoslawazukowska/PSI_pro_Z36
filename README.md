@@ -8,6 +8,13 @@ Git repository for project from PSI (Network programming) course in Warsaw Unive
 - Aleksandra Szczypawka
 - Radosława Żukowska
 
+## ToDo
+
+- server wielowątkowy
+- typy wiadomości
+- obsługa typów wiadomości
+- Diffie-Helman
+
 ## Uruchomienie z interaktywnym terminalem
 
 Program pobiera input użytkownika z terminala. Parametry konfiuracyjne pochodzą z `docker-compose.yaml`.
