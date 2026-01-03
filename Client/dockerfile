@@ -1,0 +1,4 @@
+FROM python:3
+WORKDIR /app
+ADD ./Client/tcp_client.py .
+ENTRYPOINT [ "python3", "tcp_client.py"]
