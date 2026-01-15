@@ -19,3 +19,4 @@ services:
 networks:
   default:
     name: tcp_network
+    external: true
