@@ -2,14 +2,18 @@ version: "3"
 services:
   server:
     container_name: server
-    build : ./Server
+    build :
+      context: .       # kontekst całego projektu
+      dockerfile: Server/dockerfile
     image: tcp_server:1.0
     stdin_open: true # docker run -i
     tty: true        # docker run -t
 
   client:
     container_name: client
-    build: ./Client
+    build: 
+      context: .
+      dockerfile: Client/dockerfile
     image: tcp_client:1.0
     stdin_open: true
     tty: true
