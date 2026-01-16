@@ -1,5 +1,7 @@
+from __future__ import annotations
 from enum import IntEnum
 from dataclasses import dataclass
+from typing import ClassVar
 import struct
 
 
@@ -12,21 +14,19 @@ class MessageType(IntEnum):
 
 @dataclass
 class Message:
-    msg_type: MessageType
+    HEADER_FORMAT: ClassVar[str] = "!B"  # network order, 1 Byte
+    HEADER_SIZE: ClassVar[int] = struct.calcsize(HEADER_FORMAT)
+
+    type: MessageType
     body: bytes
 
-    HEADER_FORMAT = "!BI"  # type (1B), length (4B)
-
-    def encode(self) -> bytes:
-        header = struct.pack(self.HEADER_FORMAT, self.msg_type, len(self.body))
+    def to_bytes(self) -> bytes:
+        header = struct.pack(self.HEADER_FORMAT, self.type)
         return header + self.body
 
     @classmethod
-    def decode(cls, data: bytes) -> "Message":
-        header_size = struct.calcsize(cls.HEADER_FORMAT)
+    def from_bytes(cls, data: bytes) -> Message:
+        type = struct.unpack(cls.HEADER_FORMAT, data[: cls.HEADER_SIZE])[0]
+        body = data[cls.HEADER_SIZE :]
 
-        msg_type, length = struct.unpack(cls.HEADER_FORMAT, data[:header_size])
-
-        body = data[header_size : header_size + length]
-
-        return cls(MessageType(msg_type), body)
+        return cls(MessageType(type), body)

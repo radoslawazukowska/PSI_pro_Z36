@@ -1,8 +1,8 @@
 import socket
 import sys
 from time import sleep
-from models import Message, MessageType
-from models import Session
+from message import Message, MessageType
+
 
 HOST = "127.0.0.1"  # The server's hostname or IP addres
 PORT = 1234  # Port na ktorym nasłuchuje server
@@ -43,10 +43,6 @@ def interactive_loop(sock, session):
 
 
 if __name__ == "__main__":
-    # sleep(5)
-    # print("Client wakes up")
-    inp = input("Write here: ")
-    print("Input: ", inp)
 
     host = HOST
     port = PORT
@@ -61,7 +57,19 @@ if __name__ == "__main__":
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
-        s.sendall(b"Hello, world!")
-        data = s.recv(1024)
-    print("Data: ", data)
+
+        # tymczasowe - zmienić
+        msg = Message(type=MessageType.MSG, body=b"")
+
+        while msg.type != MessageType.END:
+            body_str = input("Co napisać? ")
+            cli_msg = Message(type=MessageType.MSG, body=body_str.encode("utf-8"))
+
+            s.sendall(cli_msg.to_bytes())
+
+            data = s.recv(1024)
+
+            msg = Message.from_bytes(data)
+            print("Received: ", msg.body)
+
     print("Client finished")
