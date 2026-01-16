@@ -3,7 +3,7 @@ services:
   server:
     container_name: server
     build :
-      context: .       # kontekst całego projektu
+      context: .       
       dockerfile: Server/dockerfile
     image: tcp_server:1.0
     stdin_open: true # docker run -i
