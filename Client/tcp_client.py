@@ -58,25 +58,26 @@ if __name__ == "__main__":
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
 
-        # tymczasowe - zmienić
-        msg = Message(type=MessageType.MSG, body=b"")
-
-        while msg.type != MessageType.END:
+        while True:
             body_str = input("Co napisać? ")
-            if body_str == "end":
-                cli_msg = Message(type=MessageType.END, body=b"")
-                print("Connection closed by client")
-                s.sendall(cli_msg.to_bytes())
-                break
-            else:
-                cli_msg = Message(type=MessageType.MSG, body=body_str.encode("utf-8"))
 
+            msg_type = MessageType.END if body_str == "end" else MessageType.MSG
+            body = b"" if msg_type == MessageType.END else body_str.encode("utf-8")
+
+            cli_msg = Message(type=msg_type, body=body)
             s.sendall(cli_msg.to_bytes())
+
+            if msg_type == MessageType.END:
+                print("Connection closed by client")
+                break
 
             data = s.recv(1024)
             msg = Message.from_bytes(data)
-            print("Received: ", msg.body)
+            # msg = Message.from_socket(s)
+            print("Received:", msg.body.decode("utf-8"))
+
             if msg.type == MessageType.END:
                 print("Connection closed by server")
+                break
 
     print("Client finished")
