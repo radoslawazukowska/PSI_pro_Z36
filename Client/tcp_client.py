@@ -63,13 +63,20 @@ if __name__ == "__main__":
 
         while msg.type != MessageType.END:
             body_str = input("Co napisać? ")
-            cli_msg = Message(type=MessageType.MSG, body=body_str.encode("utf-8"))
+            if body_str == "end":
+                cli_msg = Message(type=MessageType.END, body=b"")
+                print("Connection closed by client")
+                s.sendall(cli_msg.to_bytes())
+                break
+            else:
+                cli_msg = Message(type=MessageType.MSG, body=body_str.encode("utf-8"))
 
             s.sendall(cli_msg.to_bytes())
 
             data = s.recv(1024)
-
             msg = Message.from_bytes(data)
             print("Received: ", msg.body)
+            if msg.type == MessageType.END:
+                print("Connection closed by server")
 
     print("Client finished")
