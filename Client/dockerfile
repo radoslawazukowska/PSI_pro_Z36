@@ -1,0 +1,10 @@
+FROM python:3
+
+WORKDIR /app/Client
+COPY Client/tcp_client.py .
+COPY common /app/common
+
+WORKDIR /app/Client
+
+ENV PYTHONPATH=/app/common:$PYTHONPATH
+ENTRYPOINT [ "python3", "tcp_client.py"]
