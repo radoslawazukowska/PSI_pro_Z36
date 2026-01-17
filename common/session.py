@@ -17,7 +17,9 @@ class Session:
     shared_key: Optional[bytes] = None
     mac_key: Optional[bytes] = None
 
-    established: bool = False
+    @property
+    def tls_established(self) -> bool:
+        return self.shared_key is not None
 
     def generate_public_key(self):
         self.public_key = randbytes(self.key_size)

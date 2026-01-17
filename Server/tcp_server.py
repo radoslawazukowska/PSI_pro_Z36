@@ -2,6 +2,7 @@ import socket
 import sys
 import threading
 from message import Message, MessageType
+from session import Session
 from dataclasses import dataclass, field
 
 HOST = "0.0.0.0"  # The server's hostname or IP addres, standard loopback
@@ -12,6 +13,7 @@ BUFFSIZE = 512
 @dataclass
 class Server:
     clients: dict = field(default_factory=dict)
+    clients_sessions: dict = field(default_factory=dict)
     clients_to_del: list = field(default_factory=list)
     clients_lock: threading.Lock = field(default_factory=threading.Lock)
     client_id_counter: int = 0
@@ -63,6 +65,7 @@ class Server:
                     self.client_id_counter += 1
                     client_id = self.client_id_counter
                     self.clients[client_id] = conn
+                    self.clients_sessions[client_id] = Session()
 
                 cli_thread = threading.Thread(
                     target=self.handle_client,
@@ -95,7 +98,11 @@ class Server:
                     if msg.type == MessageType.END:
                         print(f"Connection closed by client {addr}")
                         del self.clients[client_id]
-                    else:
+                    elif msg.type == MessageType.CLH:
+                        svh_msg = Message(type=MessageType.SVH, body=b"svh")
+                        conn.sendall(svh_msg.to_bytes())
+                        print(f"CLH from {addr}")
+                    elif msg.type == MessageType.MSG:
                         print(f"Get data from {addr}: {msg.body.decode('utf-8')}")
                 except socket.timeout:
                     continue

@@ -24,44 +24,6 @@ class Client:
             self.loop(s)
         print("Client finished")
 
-    # def loop(self, sock):
-    #     while True:
-    #         cmd = input("client> ").strip()
-
-    #         # przed wykonaniem swojego zadania sprawdzam czy serwer nie przerwał
-    #         try:
-    #             data = sock.recv(1024)
-
-    #             if len(data) > 0:
-    #                 print("Received data")
-    #                 msg = Message.from_bytes(data)
-    #                 print(f"{msg.header, msg.body}")
-    #                 if msg.type == MessageType.END:
-    #                     print("Operation not performed. Connection closed by server")
-    #                     break
-    #                 # else:
-    #                 #     print("Received:", msg.body.decode("utf-8"))
-
-    #         except socket.timeout:
-    #             pass
-
-    #         if cmd == "CLH":
-    #             cli_msg = Message(type=MessageType.CLH, body="clh".encode("utf-8"))
-    #             sock.sendall(cli_msg.to_bytes())
-
-    #         elif cmd == "MSG":
-    #             cli_msg = Message(type=MessageType.MSG, body="Hello".encode("utf-8"))
-    #             sock.sendall(cli_msg.to_bytes())
-
-    #         elif cmd == "END":
-    #             cli_msg = Message(type=MessageType.END, body=b"")
-    #             sock.sendall(cli_msg.to_bytes())
-
-    #             print("Connection closed by client")
-    #             break
-    #         else:
-    #             print("Commands: CLH | MSG | END")
-
     def receiver(self, sock, stop_event):
         while not stop_event.is_set():
             try:
