@@ -57,9 +57,20 @@ if __name__ == "__main__":
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
-
+        s.settimeout(0.5)
         while True:
             body_str = input("Co napisać? ")
+
+            try:
+                data = s.recv(1024)
+                if len(data) > 0:
+                    msg = Message.from_bytes(data)
+                    print("Received:", msg.body.decode("utf-8"))
+                    if msg.type == MessageType.END:
+                        print("Connection closed by server")
+                        break
+            except socket.timeout:
+                pass
 
             msg_type = MessageType.END if body_str == "end" else MessageType.MSG
             body = b"" if msg_type == MessageType.END else body_str.encode("utf-8")
@@ -69,15 +80,6 @@ if __name__ == "__main__":
 
             if msg_type == MessageType.END:
                 print("Connection closed by client")
-                break
-
-            data = s.recv(1024)
-            msg = Message.from_bytes(data)
-            # msg = Message.from_socket(s)
-            print("Received:", msg.body.decode("utf-8"))
-
-            if msg.type == MessageType.END:
-                print("Connection closed by server")
                 break
 
     print("Client finished")

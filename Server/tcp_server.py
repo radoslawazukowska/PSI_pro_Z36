@@ -26,20 +26,6 @@ def admin_console(clients, clients_to_del, clients_lock):
 
             client_id = int(parts[1])
             clients_to_del.append(client_id)
-            # with clients_lock:
-            #     conn = clients.get(client_id)
-
-            # if conn:
-            #     try:
-            #         end_msg = Message(type=MessageType.END, body=b"")
-            #         conn.sendall(end_msg.to_bytes())
-            #         conn.close()
-            #         print(f"[!] Kicked client {client_id}")
-            #         del clients[client_id]
-            #     except OSError:
-            #         print("Error closing connection")
-            # else:
-            #     print("No such client")
 
         elif cmd == "quit":
             print("Server shutting down")
@@ -51,6 +37,7 @@ def admin_console(clients, clients_to_del, clients_lock):
 
 def handle_client(cli_id, conn, addr, clients, clients_to_del):
     with conn:
+        conn.settimeout(0.5)
         print(f"Connected from {addr}")
         while True:
             if cli_id in clients_to_del:
@@ -62,26 +49,14 @@ def handle_client(cli_id, conn, addr, clients, clients_to_del):
                 clients_to_del.remove(client_id)
                 break
 
-            cli_data = conn.recv(BUFFSIZE)
-            msg = Message.from_bytes(cli_data)
-
-            print(f"Get data from {addr}: {msg.body.decode('utf-8')}")
-
-            if msg.type == MessageType.END:
-                print(f"Connection from {addr} closed by client")
-                conn.close()
-                break
-
-            # body_str = input("Server message: ")
-            # msg_type = MessageType.END if body_str == "end" else MessageType.MSG
-            # body = b"" if msg_type == MessageType.END else body_str.encode()
-
-            # serv_msg = Message(type=MessageType.MSG, body=b"ACK")
-            # conn.sendall(serv_msg.to_bytes())
-
-            # if msg_type == MessageType.END:
-            #     print(f"Connection to {addr} closed by server")
-            #     break
+            try:
+                cli_data = conn.recv(BUFFSIZE)
+                if not cli_data:
+                    break
+                msg = Message.from_bytes(cli_data)
+                print(f"Get data from {addr}: {msg.body.decode('utf-8')}")
+            except socket.timeout:
+                continue
 
 
 if __name__ == "__main__":

@@ -26,7 +26,6 @@ class Message:
 
     @classmethod
     def from_bytes(cls, data: bytes) -> Message:
-        print(len(data))
         type = struct.unpack(cls.HEADER_FORMAT, data[: cls.HEADER_SIZE])[0]
         body = data[cls.HEADER_SIZE :]
 
