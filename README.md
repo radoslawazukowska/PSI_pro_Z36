@@ -42,3 +42,7 @@ docker-compose -f docker-compose.yaml up --build
 ```
 docker-compose -f docker-compose.yaml down
 ```
+
+## Wielowątkowość
+
+- `daemon=True` - jakby uruchomienie w tle, jeśli główny proces zostanie zakończony to ten też
