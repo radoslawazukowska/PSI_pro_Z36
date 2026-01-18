@@ -13,6 +13,7 @@ MAX_CLIENTS = 10
 
 @dataclass
 class Server:
+    max_clients: int = 10
     clients: dict = field(default_factory=dict)
     clients_sessions: dict = field(default_factory=dict)
     clients_addrs: dict = field(default_factory=dict)
@@ -53,8 +54,8 @@ class Server:
     def loop(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
-            s.listen(MAX_CLIENTS)
-            print(f"Server is running on {HOST}:{PORT}")
+            s.listen(self.max_clients)
+            print(f"Server is running on {HOST}:{PORT} (max clients: {self.max_clients})")
 
             while True:
                 conn, addr = s.accept()
@@ -95,13 +96,24 @@ class Server:
 
                     if not session.tls_established:
                         if msg.type == MessageType.CLH:
+                            # ClientHello body: [P (4B)][G (4B)][client_public_key (4B)]
+                            if len(msg.body) < 3 * session.KEY_SIZE:
+                                print(f"Invalid ClientHello from {addr}")
+                                continue
+
+                            session.set_dh_params_from_bytes(msg.body[:2 * session.KEY_SIZE])
+
+                            client_public_key_bytes = msg.body[2 * session.KEY_SIZE:]
+
                             session.generate_keys()
+
                             self.send_message(
                                 conn,
                                 session,
                                 Message(MessageType.SVH, session.public_key_bytes()),
                             )
-                            session.set_peer_key(msg.body)
+
+                            session.set_peer_key(client_public_key_bytes)
                             session.calculate_shared_key()
                             print(f"TLS session established with {addr}")
                             continue
@@ -144,5 +156,17 @@ class Server:
 
 
 if __name__ == "__main__":
-    server = Server()
+    max_clients = 10
+    if len(sys.argv) >= 2:
+        try:
+            max_clients = int(sys.argv[1])
+            if max_clients < 1:
+                print("Error: max_clients must be at least 1")
+                sys.exit(1)
+        except ValueError:
+            print(f"Error: '{sys.argv[1]}' is not a valid number")
+            print("Usage: python tcp_server.py [max_clients]")
+            sys.exit(1)
+
+    server = Server(max_clients=max_clients)
     server.run()
