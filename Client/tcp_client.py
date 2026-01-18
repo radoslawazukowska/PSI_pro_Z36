@@ -97,11 +97,20 @@ class Client:
                     target=self.receiver, args=(stop_event,), daemon=True
                 ).start()
 
-                # Send ClientHello
+                self.session.set_dh_params(
+                    self.session.DEFAULT_DH_P,
+                    self.session.DEFAULT_DH_G
+                )
                 self.session.generate_keys()
 
+                # ClientHello body: [P (4B)][G (4B)][public_key (4B)]
+                client_hello_body = (
+                    self.session.dh_params_bytes() +
+                    self.session.public_key_bytes()
+                )
+
                 self.send_message(
-                    Message(MessageType.CLH, self.session.public_key_bytes())
+                    Message(MessageType.CLH, client_hello_body)
                 )
 
                 # Wait for ServerHello

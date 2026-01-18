@@ -43,3 +43,17 @@ Obsługiwane polecenia:
 - `CONNECT` - nawiązuje połączenie z serwerem
 - `MSG` - wysyła wiadamość do serwera
 - `END` - kończy połączenie z serwerem
+
+## Przeprowadzenie testów i uzyskanie danych sieciowych
+
+Uruchom serwer tak jak wspomniane wyżej, następnie w osobnych terminalu wejdź w tryb interaktywny z kontenerem serwera z terminalem sh
+
+`docker exec -it z36_server sh`
+
+Uruchom zbieranie danych sieciowych
+
+`tcpdump -i eth0 -w /tmp/z36.pcap`
+
+Przejdź do nowego terminala i uruchom klienta, prześlij wiadomości wedle uznania. Następnie w terminalu z `tcpdump` zatrzymaj jego wykonywanie `Ctrl+C`, opuść kontener `exit`. Skopiuj uzyskane pliki do folderu `tests` za pomocą polecenia `docker cp z35_server:{ścieżka do pliku} {ścieżka docelowa}`.
+
+W programie Wireshark pobierz dane z wybranej wiadomości zaszyfrowanej do pliku, który umieść także w folderze `tests`, przejdź do tego folderu, zaktualizuj ten plik o nazwy plików z danymi i uruchom program odszyfrowujący wiadomość `python test.py`.
