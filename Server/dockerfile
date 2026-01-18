@@ -6,6 +6,9 @@ COPY common /app/common
 
 WORKDIR /app/Server
 
+RUN apt update
+RUN apt install tcpdump -y
+
 ENV PYTHONPATH=/app/common:$PYTHONPATH
 ENTRYPOINT ["python3", "tcp_server.py"]
 

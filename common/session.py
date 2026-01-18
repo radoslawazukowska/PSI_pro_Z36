@@ -36,6 +36,16 @@ class Session:
         key = pow(self.peer_public_key, self.private_key, self.DH_P)
         self.shared_key = key.to_bytes(self.KEY_SIZE, "big")
         self.mac_key = hashlib.sha256(self.shared_key).digest()[: self.KEY_SIZE]
+    
+    def save_shared_key_to_file(self, id):
+        if self.shared_key:
+            with open(f"shared_key_{id}.bin", "wb") as f:
+                f.write(self.shared_key)
+            with open(f"hash_{id}.bin", "wb") as f:
+                f.write(self.mac_key)
+            print("Shared key saved to shared_keys.txt")
+        else:
+            raise ValueError("Shared key is not established")
 
     def encrypt_message(self, plaintext: bytes) -> bytes:
         if self.shared_key is None:

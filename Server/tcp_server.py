@@ -104,6 +104,7 @@ class Server:
                             session.set_peer_key(msg.body)
                             session.calculate_shared_key()
                             print(f"TLS session established with {addr}")
+                            session.save_shared_key_to_file(self.client_id_counter)
                             continue
                         else:
                             print(f"Unexpected message from {addr} before TLS")
