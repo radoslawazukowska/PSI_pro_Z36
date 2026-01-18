@@ -14,6 +14,7 @@ BUFFSIZE = 512
 class Server:
     clients: dict = field(default_factory=dict)
     clients_sessions: dict = field(default_factory=dict)
+    clients_addrs: dict = field(default_factory=dict)
     clients_to_del: list = field(default_factory=list)
     clients_lock: threading.Lock = field(default_factory=threading.Lock)
     client_id_counter: int = 0
@@ -30,27 +31,23 @@ class Server:
         while True:
             cmd = input("server> ").strip()
 
-            if cmd == "list":
+            if cmd == "LIST":
                 with self.clients_lock:
                     print("Connected clients:")
                     for cid in self.clients:
-                        print(f" - {cid}")
+                        print(f" - id: {cid}, addr: {self.clients_addrs[cid]}")
 
-            elif cmd.startswith("kick"):
+            elif cmd.startswith("DELETE"):
                 parts = cmd.split()
                 if len(parts) != 2:
-                    print("Usage: kick <client_id>")
+                    print("Usage: DELETE <client_id>")
                     continue
 
                 client_id = int(parts[1])
                 self.clients_to_del.append(client_id)
 
-            elif cmd == "quit":
-                print("Server shutting down")
-                break
-
             else:
-                print("Commands: list | kick <id> | quit")
+                print("Commands: LIST | DELETE <client_id>")
 
     def loop(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -65,6 +62,7 @@ class Server:
                     self.client_id_counter += 1
                     client_id = self.client_id_counter
                     self.clients[client_id] = conn
+                    self.clients_addrs[client_id] = addr
                     self.clients_sessions[client_id] = Session()
 
                 cli_thread = threading.Thread(
@@ -72,9 +70,7 @@ class Server:
                     args=(client_id, conn, addr),
                     daemon=True,
                 )
-
                 cli_thread.start()
-                print("New client thread started")
 
     def handle_client(self, client_id, conn, addr):
         with conn:
@@ -129,6 +125,7 @@ class Server:
     def delete_client(self, client_id):
         self.clients_to_del.remove(client_id)
         del self.clients[client_id]
+        del self.clients_addrs[client_id]
         del self.clients_sessions[client_id]
         print(f"[!] Deleted client {client_id}")
 

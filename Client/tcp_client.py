@@ -18,84 +18,116 @@ class Client:
     port: int
     session: Session = field(default_factory=Session)
     inbox: Queue = field(default_factory=Queue)
+    sock: socket.socket | None = None
 
     def run(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((host, port))
-            s.settimeout(0.5)
-            self.loop(s)
-        print("Client finished")
+        self.loop()
 
-    def receiver(self, sock, stop_event):
-        while not stop_event.is_set():
+    def receiver(self, stop_event: threading.Event):
+        while not stop_event.is_set() and self.sock:
             try:
-                data = sock.recv(1024)
+                data = self.sock.recv(1024)
                 if not data:
+                    print("[!] Server closed connection")
                     stop_event.set()
+                    self.reset_connection()
                     break
 
                 msg = Message.from_bytes(data)
                 self.inbox.put(msg)
 
                 if msg.type == MessageType.END:
-                    print("\n[!] Connection closed by server")
+                    print("\n[!] Server sent END")
                     stop_event.set()
+                    self.reset_connection()
                     break
 
             except socket.timeout:
                 continue
+            except Exception as e:
+                print(f"[!] Receiver error: {e}")
+                stop_event.set()
+                self.reset_connection()
+                break
 
-    def loop(self, sock):
-        stop_event = threading.Event()
+    def reset_connection(self):
+        if self.sock:
+            try:
+                self.sock.close()
+            except Exception:
+                pass
+        self.sock = None
+        self.session = Session()
+        self.inbox.queue.clear()
 
-        threading.Thread(
-            target=self.receiver, args=(sock, stop_event), daemon=True
-        ).start()
+    def loop(self):
+        while True:
+            cmd = input("client> ").strip().upper()
 
-        while not stop_event.is_set():
-            cmd = input("client> ").strip()
+            if cmd == "QUIT":
+                print("[+] Exiting client")
+                self.reset_connection()
+                break
 
             if not self.session.tls_established:
-                if cmd == "CONNECT":
-                    self.session.generate_keys()
-                    sock.sendall(
-                        Message(
-                            MessageType.CLH, self.session.public_key_bytes()
-                        ).to_bytes()
-                    )
-
-                    try:
-                        sock.settimeout(3.0)
-                        msg = self.inbox.get()
-                    except Empty:
-                        print("[-] Timeout waiting for ServerHello")
-                        continue
-                    finally:
-                        sock.settimeout(0.5)
-
-                    if msg.type == MessageType.SVH:
-                        self.session.set_peer_key(msg.body)
-                        self.session.calculate_shared_key()
-                        print("[+] TLS established")
-                        continue
-                else:
-                    print("[-] Please establish TLS first using CONNECT command.")
+                if cmd != "CONNECT":
+                    print("[-] TLS not established. Allowed command: CONNECT")
                     continue
 
-            # After TLS established
+                # New TCP Connection
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect((self.host, self.port))
+                self.sock.settimeout(0.5)
+                stop_event = threading.Event()
+
+                threading.Thread(
+                    target=self.receiver, args=(stop_event,), daemon=True
+                ).start()
+
+                # Send ClientHello
+                self.session.generate_keys()
+                self.sock.sendall(
+                    Message(MessageType.CLH, self.session.public_key_bytes()).to_bytes()
+                )
+
+                # Wait for ServerHello
+                try:
+                    self.sock.settimeout(3.0)
+                    msg = self.inbox.get(timeout=3)
+                except Empty:
+                    print("[-] Timeout waiting for ServerHello")
+                    self.reset_connection()
+                    continue
+                finally:
+                    if self.sock:
+                        self.sock.settimeout(0.5)
+
+                if msg.type == MessageType.SVH:
+                    self.session.set_peer_key(msg.body)
+                    self.session.calculate_shared_key()
+                    print("[+] TLS established")
+                else:
+                    print("[-] Unexpected message from server")
+                continue
+
+            # After TLS is established
             if cmd == "CONNECT":
-                print("TLS already established.")
+                print("[+] TLS already established.")
                 continue
 
             if cmd == "END":
-                sock.sendall(Message(MessageType.END, b"").to_bytes())
-                stop_event.set()
-                print("[+] Sent END to server")
-                break
+                if self.sock:
+                    self.sock.sendall(Message(MessageType.END, b"").to_bytes())
+                print("[+] Sent END to server, session reset")
+                self.reset_connection()
+                continue
 
-            elif cmd == "MSG":
-                sock.sendall(Message(MessageType.MSG, b"Hello").to_bytes())
-                print("[+] Sent MSG to server")
+            if cmd == "MSG":
+                if self.sock:
+                    self.sock.sendall(Message(MessageType.MSG, b"Hello").to_bytes())
+                    print("[+] Sent MSG to server")
+                else:
+                    print("[-] No active connection. Use CONNECT first.")
 
 
 if __name__ == "__main__":
