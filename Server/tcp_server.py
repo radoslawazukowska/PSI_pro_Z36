@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 HOST = "0.0.0.0"  # The server's hostname or IP addres, standard loopback
 PORT = 1234  # Port na ktorym nasłuchuje server
 BUFFSIZE = 1024
+MAX_CLIENTS = 10
 
 
 @dataclass
@@ -52,7 +53,7 @@ class Server:
     def loop(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((HOST, PORT))
-            s.listen(5)
+            s.listen(MAX_CLIENTS)
             print(f"Server is running on {HOST}:{PORT}")
 
             while True:

@@ -27,6 +27,8 @@ docker compose run --name z36_server --build --rm server
 ```
 docker compose run --name z36_client --build --rm client
 ```
+- każdy kolejny uruchamiany kontener z klientem musi mieć inną nazwę np.
+`z36_client_2`
 
 ## Obsługa
 Programy `klienta` oraz `serwera` obsługujemy z wiersza poleceń.
