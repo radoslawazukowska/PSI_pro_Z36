@@ -9,7 +9,7 @@ import secrets
 class Session:
     KEY_SIZE: ClassVar[int] = 4
     # Default values - can be overridden during key exchange
-    DEFAULT_DH_P: ClassVar[int] = 4294967311
+    DEFAULT_DH_P: ClassVar[int] = 4294967291
     DEFAULT_DH_G: ClassVar[int] = 5
 
     dh_p: Optional[int] = None
