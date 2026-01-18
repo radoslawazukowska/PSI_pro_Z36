@@ -20,8 +20,9 @@ cd PSI_pro_Z36
 
 ### Uruchomienie serwera
 ```
-docker compose run --name z36_server --build --rm server
+docker compose run --name z36_server --build --rm -e MAX_CLIENTS=10 server
 ```
+- należy ustawić wartość parametru `MAX_CLIENTS`
 
 ### Uruchomienie klienta
 ```
