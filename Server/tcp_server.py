@@ -80,32 +80,57 @@ class Server:
         with conn:
             conn.settimeout(0.5)
             print(f"Connected from {addr}")
-            while True:
-                if client_id in self.clients_to_del:
-                    end_msg = Message(type=MessageType.END, body=b"")
-                    conn.sendall(end_msg.to_bytes())
 
-                    print(f"[!] Kicked client {client_id}")
-                    del self.clients[client_id]
-                    self.clients_to_del.remove(client_id)
-                    break
+            while True:
+                # delete client if requested by admin
+                with self.clients_lock:
+                    if client_id in self.clients_to_del:
+                        conn.sendall(Message(MessageType.END, b"").to_bytes())
+                        print(f"[!] Deleted client {client_id}")
+                        self.clients_to_del.remove(client_id)
+                        del self.clients[client_id]
+                        break
 
                 try:
                     cli_data = conn.recv(BUFFSIZE)
                     if not cli_data:
                         break
+
                     msg = Message.from_bytes(cli_data)
+                    session = self.clients_sessions[client_id]
+                    if not session.tls_established and msg.type == MessageType.CLH:
+                        session.generate_keys()
+                        conn.sendall(
+                            Message(
+                                MessageType.SVH, session.public_key_bytes()
+                            ).to_bytes()
+                        )
+                        session.set_peer_key(msg.body)
+                        session.calculate_shared_key()
+                        print(f"Connection from {addr} established TLS keys")
+                        continue
+
                     if msg.type == MessageType.END:
                         print(f"Connection closed by client {addr}")
-                        del self.clients[client_id]
-                    elif msg.type == MessageType.CLH:
-                        svh_msg = Message(type=MessageType.SVH, body=b"svh")
-                        conn.sendall(svh_msg.to_bytes())
-                        print(f"CLH from {addr}")
+                        with self.clients_lock:
+                            del self.clients[client_id]
+                        break
+
                     elif msg.type == MessageType.MSG:
-                        print(f"Get data from {addr}: {msg.body.decode('utf-8')}")
+                        print(f"Get data from {addr}: {msg.body.decode()}")
+
                 except socket.timeout:
                     continue
+
+        print(f"Handler for client {client_id} exited")
+
+    def delete_client(self, client_id):
+        with self.clients_lock:
+            if client_id in self.clients:
+                conn = self.clients[client_id]
+                conn.close()
+                del self.clients[client_id]
+                print(f"Client {client_id} deleted")
 
 
 if __name__ == "__main__":
