@@ -10,6 +10,7 @@ from queue import Empty, Queue
 
 HOST = "127.0.0.1"  # The server's hostname or IP addres
 PORT = 1234  # Port na ktorym nasłuchuje server
+BUFFSIZE = 1024
 
 
 @dataclass
@@ -26,7 +27,7 @@ class Client:
     def receiver(self, stop_event: threading.Event):
         while not stop_event.is_set() and self.sock:
             try:
-                data = self.sock.recv(1024)
+                data = self.sock.recv(BUFFSIZE)
                 if not data:
                     print("[!] Server closed connection")
                     stop_event.set()
@@ -45,7 +46,7 @@ class Client:
             except socket.timeout:
                 continue
             except Exception as e:
-                print(f"[!] Receiver error: {e}")
+                # print(f"[!] Receiver error: {e}")
                 stop_event.set()
                 self.reset_connection()
                 break
@@ -67,13 +68,10 @@ class Client:
         self.sock.sendall(msg_bytes)
 
     def process_message(self, data) -> Message:
-        print("Received raw data:", data)
         if self.session.tls_established:
             data = self.session.verify_and_decrypt(data)
 
-        msg = Message.from_bytes(data)
-        print("Processed message:", msg.type, msg.body)
-        return msg
+        return Message.from_bytes(data)
 
     def loop(self):
         while True:

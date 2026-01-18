@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 HOST = "0.0.0.0"  # The server's hostname or IP addres, standard loopback
 PORT = 1234  # Port na ktorym nasłuchuje server
-BUFFSIZE = 512
+BUFFSIZE = 1024
 
 
 @dataclass
@@ -75,11 +75,10 @@ class Server:
     def handle_client(self, client_id, conn, addr):
         with conn:
             conn.settimeout(0.5)
-            print(f"TCP connection from {addr}")
             session = self.clients_sessions[client_id]
 
             while True:
-                # delete client if requested by admin
+                # delete client if requested
                 with self.clients_lock:
                     if client_id in self.clients_to_del:
                         self.send_message(conn, session, Message(MessageType.END, b""))
@@ -117,7 +116,7 @@ class Server:
                         break
 
                     elif msg.type == MessageType.MSG:
-                        print(f"Get data from {addr}: {msg.body.decode()}")
+                        print(f"[MSG] From {addr}: {msg.body.decode()}")
 
                 except socket.timeout:
                     continue
@@ -129,13 +128,10 @@ class Server:
         sock.sendall(msg_bytes)
 
     def process_message(self, session, data) -> Message:
-        print("Received raw data:", data)
-        print("Session TLS established:", session.tls_established)
         if session.tls_established:
             data = session.verify_and_decrypt(data)
 
         msg = Message.from_bytes(data)
-        print("Processed message:", msg.type, msg.body)
         return msg
 
     def delete_client(self, client_id):

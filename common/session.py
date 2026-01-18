@@ -8,8 +8,8 @@ import secrets
 @dataclass
 class Session:
     KEY_SIZE: ClassVar[int] = 4
-    DH_P: ClassVar[int] = 4294967311  # 32-bitowa liczba pierwsza
-    DH_G: ClassVar[int] = 5  # mała podstawa
+    DH_P: ClassVar[int] = 4294967311
+    DH_G: ClassVar[int] = 5
 
     private_key: Optional[int] = None
     public_key: Optional[int] = None
@@ -35,10 +35,7 @@ class Session:
     def calculate_shared_key(self):
         key = pow(self.peer_public_key, self.private_key, self.DH_P)
         self.shared_key = key.to_bytes(self.KEY_SIZE, "big")
-        print("Shared key calculated.", self.shared_key)
-
         self.mac_key = hashlib.sha256(self.shared_key).digest()[: self.KEY_SIZE]
-        print("MAC key calculated.", self.mac_key)
 
     def encrypt_message(self, plaintext: bytes) -> bytes:
         if self.shared_key is None:

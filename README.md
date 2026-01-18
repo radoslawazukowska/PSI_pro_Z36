@@ -8,41 +8,35 @@ Git repository for project from PSI (Network programming) course in Warsaw Unive
 - Aleksandra Szczypawka
 - Radosława Żukowska
 
-## ToDo
 
-- server wielowątkowy
-- typy wiadomości
-- obsługa typów wiadomości
-- Diffie-Helman
+## Uruchomienie
 
-## Uruchomienie z interaktywnym terminalem
-
-Program pobiera input użytkownika z terminala. Parametry konfiuracyjne pochodzą z `docker-compose.yaml`.
+Program pobiera input użytkownika dlatego należy uruchomić w osobnych terminalach. Parametry konfiuracyjne pochodzą z `docker-compose.yaml`.
 
 ```
-docker compose run --name server --build --rm server
-docker compose run --name client --build --rm client
+git clone https://github.com/radoslawazukowska/PSI_pro_Z36.git
+cd PSI_pro_Z36
 ```
 
-- `run` zamiast up aby można było sie komunikować przez `stdin`
-- `rm` - automatycznie się sprzątnie nie trzeba usuwać
-- kiedy buduję z `run` to muszę wcześniej mieć sieć
-  - `docker network create tcp_network`
-- dodaję --name server, ponieważ łączę się z klienta na hostname server, a ez tego kontener jest inaczej nazywany
-  - możnaby przekazywać adres jako parametr a nie hardcoded "server"
-
-## Uruchomienie - Oba równocześnie
-
+### Uruchomienie serwera
 ```
-docker-compose -f docker-compose.yaml up --build
+docker compose run --name z36_server --build --rm server
 ```
 
-## Usunięcie
-
+### Uruchomienie klienta
 ```
-docker-compose -f docker-compose.yaml down
+docker compose run --name z36_client --build --rm client
 ```
 
-## Wielowątkowość
+## Obsługa
+Programy `klienta` oraz `serwera` obsługujemy z wiersza poleceń.
+### Server
+Obsługiwane polecenia:
+- `LIST` - wyświetla listę połączonych klientów (format: id, adres)
+- `DELETE <ID>` - kończy połączenie dla klienta o wskazanych id
 
-- `daemon=True` - jakby uruchomienie w tle, jeśli główny proces zostanie zakończony to ten też
+### Klient
+Obsługiwane polecenia:
+- `CONNECT` - nawiązuje połączenie z serwerem
+- `MSG` - wysyła wiadamość do serwera
+- `END` - kończy połączenie z serwerem
