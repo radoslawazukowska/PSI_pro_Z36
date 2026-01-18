@@ -2,17 +2,18 @@ from dataclasses import dataclass
 from typing import Optional, ClassVar
 import hashlib
 from random import randbytes
+import secrets
 
 
 @dataclass
 class Session:
-    KEY_SIZE: ClassVar[int] = 32
-    DH_P: ClassVar[int] = 17
-    DH_P: ClassVar[int] = 19
+    KEY_SIZE: ClassVar[int] = 4
+    DH_P: ClassVar[int] = 4294967311
+    DH_G: ClassVar[int] = 5
 
-    private_key: Optional[bytes] = None
-    public_key: Optional[bytes] = None
-    peer_public_key: Optional[bytes] = None
+    private_key: Optional[int] = None
+    public_key: Optional[int] = None
+    peer_public_key: Optional[int] = None
 
     shared_key: Optional[bytes] = None
     mac_key: Optional[bytes] = None
@@ -21,17 +22,50 @@ class Session:
     def tls_established(self) -> bool:
         return self.shared_key is not None
 
-    def generate_public_key(self):
-        self.public_key = randbytes(self.key_size)
+    def generate_keys(self):
+        self.private_key = secrets.randbelow(self.DH_P - 2) + 2
+        self.public_key = pow(self.DH_G, self.private_key, self.DH_P)
 
-    def set_peer_key(self, peer_key: bytes):
-        self.peer_public_key = peer_key
+    def public_key_bytes(self) -> bytes:
+        return self.public_key.to_bytes(self.KEY_SIZE, "big")
+
+    def set_peer_key(self, peer_bytes: bytes):
+        self.peer_public_key = int.from_bytes(peer_bytes, "big")
 
     def calculate_shared_key(self):
-        pass
+        key = pow(self.peer_public_key, self.private_key, self.DH_P)
+        self.shared_key = key.to_bytes(self.KEY_SIZE, "big")
+        self.mac_key = hashlib.sha256(self.shared_key).digest()[: self.KEY_SIZE]
 
-    def encrypt_and_mac(plaintext):
-        pass
+    def encrypt_message(self, plaintext: bytes) -> bytes:
+        if self.shared_key is None:
+            raise ValueError("Shared key not established")
 
-    def verify_and_decrypt(ciphertext):
-        pass
+        key = self.shared_key
+        key_len = len(key)
+        ciphertext = bytes([b ^ key[i % key_len] for i, b in enumerate(plaintext)])
+        return ciphertext
+
+    def decrypt_message(self, ciphertext: bytes) -> bytes:
+        return self.encrypt_message(ciphertext)
+
+    def encrypt_and_mac(self, plaintext: bytes) -> bytes:
+        ciphertext = self.encrypt_message(plaintext)
+        mac = hashlib.sha256(self.mac_key + ciphertext).digest()[: self.KEY_SIZE]
+        return ciphertext + mac
+
+    def verify_and_decrypt(self, data: bytes) -> bytes:
+        if len(data) < self.KEY_SIZE:
+            raise ValueError("Data too short to contain MAC")
+        ciphertext = data[: -self.KEY_SIZE]
+        recv_mac = data[-self.KEY_SIZE :]
+
+        # verification
+        expected_mac = hashlib.sha256(self.mac_key + ciphertext).digest()[
+            : self.KEY_SIZE
+        ]
+        if recv_mac != expected_mac:
+            raise ValueError("MAC verification failed")
+
+        # decryption
+        return self.decrypt_message(ciphertext)

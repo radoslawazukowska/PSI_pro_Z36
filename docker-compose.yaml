@@ -1,26 +1,25 @@
 version: "3"
 services:
   server:
-    container_name: server
-    build :
-      context: .       
+    container_name: z36_server
+    build:
+      context: .
       dockerfile: Server/dockerfile
     image: tcp_server:1.0
     stdin_open: true # docker run -i
-    tty: true        # docker run -t
+    tty: true # docker run -t
 
   client:
-    container_name: client
-    build: 
+    container_name: z36_client
+    build:
       context: .
       dockerfile: Client/dockerfile
     image: tcp_client:1.0
     stdin_open: true
     tty: true
-    command: ["server", "1234"]
-
+    command: [ "z36_server", "1234" ]
 
 networks:
   default:
-    name: tcp_network
+    name: z36_network
     external: true
