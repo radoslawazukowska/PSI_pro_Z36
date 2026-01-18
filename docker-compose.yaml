@@ -8,6 +8,8 @@ services:
     image: tcp_server:1.0
     stdin_open: true # docker run -i
     tty: true # docker run -t
+    environment:
+      - MAX_CLIENTS=5
 
   client:
     container_name: z36_client

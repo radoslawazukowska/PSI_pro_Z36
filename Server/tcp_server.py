@@ -4,11 +4,13 @@ import threading
 from message import Message, MessageType
 from session import Session
 from dataclasses import dataclass, field
+import os
 
 HOST = "0.0.0.0"  # The server's hostname or IP addres, standard loopback
 PORT = 1234  # Port na ktorym nasłuchuje server
 BUFFSIZE = 1024
-MAX_CLIENTS = 10
+MAX_CLIENTS = int(os.environ.get("MAX_CLIENTS"))
+print(MAX_CLIENTS)
 
 
 @dataclass
