@@ -82,7 +82,8 @@ class Server:
                 # delete client if requested by admin
                 with self.clients_lock:
                     if client_id in self.clients_to_del:
-                        conn.sendall(Message(MessageType.END, b"").to_bytes())
+                        # conn.sendall(Message(MessageType.END, b"").to_bytes())
+                        self.send_message(conn, session, Message(MessageType.END, b""))
                         self.delete_client(client_id)
                         break
 
@@ -91,15 +92,20 @@ class Server:
                     if not cli_data:
                         break
 
-                    msg = Message.from_bytes(cli_data)
+                    msg = self.process_message(session, cli_data)
 
                     if not session.tls_established:
                         if msg.type == MessageType.CLH:
                             session.generate_keys()
-                            conn.sendall(
-                                Message(
-                                    MessageType.SVH, session.public_key_bytes()
-                                ).to_bytes()
+                            # conn.sendall(
+                            #     Message(
+                            #         MessageType.SVH, session.public_key_bytes()
+                            #     ).to_bytes()
+                            # )
+                            self.send_message(
+                                conn,
+                                session,
+                                Message(MessageType.SVH, session.public_key_bytes()),
                             )
                             session.set_peer_key(msg.body)
                             session.calculate_shared_key()
@@ -121,6 +127,22 @@ class Server:
 
                 except socket.timeout:
                     continue
+
+    def send_message(self, sock, session, msg: Message):
+        msg_bytes = msg.to_bytes()
+        if session.tls_established:
+            msg_bytes = session.encrypt_message(msg_bytes)
+        sock.sendall(msg_bytes)
+
+    def process_message(self, session, data) -> Message:
+        print("Received raw data:", data)
+        print("Session TLS established:", session.tls_established)
+        if session.tls_established:
+            data = session.decrypt_message(data)
+
+        msg = Message.from_bytes(data)
+        print("Processed message:", msg.type, msg.body)
+        return msg
 
     def delete_client(self, client_id):
         self.clients_to_del.remove(client_id)

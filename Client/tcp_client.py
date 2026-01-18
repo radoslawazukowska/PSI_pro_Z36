@@ -33,7 +33,7 @@ class Client:
                     self.reset_connection()
                     break
 
-                msg = Message.from_bytes(data)
+                msg = self.process_message(data)
                 self.inbox.put(msg)
 
                 if msg.type == MessageType.END:
@@ -59,6 +59,21 @@ class Client:
         self.sock = None
         self.session = Session()
         self.inbox.queue.clear()
+
+    def send_message(self, msg: Message):
+        msg_bytes = msg.to_bytes()
+        if self.session.tls_established:
+            msg_bytes = self.session.encrypt_message(msg_bytes)
+        self.sock.sendall(msg_bytes)
+
+    def process_message(self, data) -> Message:
+        print("Received raw data:", data)
+        if self.session.tls_established:
+            data = self.session.decrypt_message(data)
+
+        msg = Message.from_bytes(data)
+        print("Processed message:", msg.type, msg.body)
+        return msg
 
     def loop(self):
         while True:
@@ -86,8 +101,9 @@ class Client:
 
                 # Send ClientHello
                 self.session.generate_keys()
-                self.sock.sendall(
-                    Message(MessageType.CLH, self.session.public_key_bytes()).to_bytes()
+
+                self.send_message(
+                    Message(MessageType.CLH, self.session.public_key_bytes())
                 )
 
                 # Wait for ServerHello
@@ -116,18 +132,14 @@ class Client:
                 continue
 
             if cmd == "END":
-                if self.sock:
-                    self.sock.sendall(Message(MessageType.END, b"").to_bytes())
+                self.send_message(Message(MessageType.END, b""))
                 print("[+] Sent END to server, session reset")
                 self.reset_connection()
                 continue
 
             if cmd == "MSG":
-                if self.sock:
-                    self.sock.sendall(Message(MessageType.MSG, b"Hello").to_bytes())
-                    print("[+] Sent MSG to server")
-                else:
-                    print("[-] No active connection. Use CONNECT first.")
+                self.send_message(Message(MessageType.MSG, b"Hello"))
+                print("[+] Sent MSG to server")
 
 
 if __name__ == "__main__":
