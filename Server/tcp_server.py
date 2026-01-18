@@ -79,16 +79,15 @@ class Server:
     def handle_client(self, client_id, conn, addr):
         with conn:
             conn.settimeout(0.5)
-            print(f"Connected from {addr}")
+            print(f"TCP connection from {addr}")
+            session = self.clients_sessions[client_id]
 
             while True:
                 # delete client if requested by admin
                 with self.clients_lock:
                     if client_id in self.clients_to_del:
                         conn.sendall(Message(MessageType.END, b"").to_bytes())
-                        print(f"[!] Deleted client {client_id}")
-                        self.clients_to_del.remove(client_id)
-                        del self.clients[client_id]
+                        self.delete_client(client_id)
                         break
 
                 try:
@@ -97,19 +96,24 @@ class Server:
                         break
 
                     msg = Message.from_bytes(cli_data)
-                    session = self.clients_sessions[client_id]
-                    if not session.tls_established and msg.type == MessageType.CLH:
-                        session.generate_keys()
-                        conn.sendall(
-                            Message(
-                                MessageType.SVH, session.public_key_bytes()
-                            ).to_bytes()
-                        )
-                        session.set_peer_key(msg.body)
-                        session.calculate_shared_key()
-                        print(f"Connection from {addr} established TLS keys")
-                        continue
 
+                    if not session.tls_established:
+                        if msg.type == MessageType.CLH:
+                            session.generate_keys()
+                            conn.sendall(
+                                Message(
+                                    MessageType.SVH, session.public_key_bytes()
+                                ).to_bytes()
+                            )
+                            session.set_peer_key(msg.body)
+                            session.calculate_shared_key()
+                            print(f"TLS session established with {addr}")
+                            continue
+                        else:
+                            print(f"Unexpected message from {addr} before TLS")
+                            continue
+
+                    # after TLS established
                     if msg.type == MessageType.END:
                         print(f"Connection closed by client {addr}")
                         with self.clients_lock:
@@ -122,15 +126,11 @@ class Server:
                 except socket.timeout:
                     continue
 
-        print(f"Handler for client {client_id} exited")
-
     def delete_client(self, client_id):
-        with self.clients_lock:
-            if client_id in self.clients:
-                conn = self.clients[client_id]
-                conn.close()
-                del self.clients[client_id]
-                print(f"Client {client_id} deleted")
+        self.clients_to_del.remove(client_id)
+        del self.clients[client_id]
+        del self.clients_sessions[client_id]
+        print(f"[!] Deleted client {client_id}")
 
 
 if __name__ == "__main__":

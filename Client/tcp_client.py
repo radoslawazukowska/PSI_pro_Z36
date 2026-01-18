@@ -77,9 +77,12 @@ class Client:
                         self.session.set_peer_key(msg.body)
                         self.session.calculate_shared_key()
                         print("[+] TLS established")
-                    else:
-                        print("[-] Unexpected message from server")
+                        continue
+                else:
+                    print("[-] Please establish TLS first using CONNECT command.")
+                    continue
 
+            # After TLS established
             if cmd == "CONNECT":
                 print("TLS already established.")
                 continue
@@ -87,10 +90,12 @@ class Client:
             if cmd == "END":
                 sock.sendall(Message(MessageType.END, b"").to_bytes())
                 stop_event.set()
+                print("[+] Sent END to server")
                 break
 
             elif cmd == "MSG":
                 sock.sendall(Message(MessageType.MSG, b"Hello").to_bytes())
+                print("[+] Sent MSG to server")
 
 
 if __name__ == "__main__":
