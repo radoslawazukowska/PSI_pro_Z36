@@ -63,13 +63,13 @@ class Client:
     def send_message(self, msg: Message):
         msg_bytes = msg.to_bytes()
         if self.session.tls_established:
-            msg_bytes = self.session.encrypt_message(msg_bytes)
+            msg_bytes = self.session.encrypt_and_mac(msg_bytes)
         self.sock.sendall(msg_bytes)
 
     def process_message(self, data) -> Message:
         print("Received raw data:", data)
         if self.session.tls_established:
-            data = self.session.decrypt_message(data)
+            data = self.session.verify_and_decrypt(data)
 
         msg = Message.from_bytes(data)
         print("Processed message:", msg.type, msg.body)
